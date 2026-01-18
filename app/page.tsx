@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { Loader2, Copy, Check } from 'lucide-react'
 
 export default function Home() {
   const [inputText, setInputText] = useState('')
   const [optimizedPrompt, setOptimizedPrompt] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const handleOptimize = async () => {
     if (!inputText.trim()) {
@@ -41,9 +43,16 @@ export default function Home() {
     }
   }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(optimizedPrompt)
-    alert('已复制到剪贴板')
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(optimizedPrompt)
+      setCopied(true)
+      setTimeout(() => {
+        setCopied(false)
+      }, 2000)
+    } catch (err) {
+      console.error('复制失败:', err)
+    }
   }
 
   return (
@@ -70,31 +79,42 @@ export default function Home() {
             <button
               onClick={handleOptimize}
               disabled={isLoading}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none whitespace-nowrap"
+              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none whitespace-nowrap flex items-center gap-2"
             >
+              {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
               {isLoading ? '生成中...' : '生成/优化'}
             </button>
           </div>
 
           {/* 右侧：输出框 */}
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <div className="flex justify-between items-center mb-2">
               <label className="block text-slate-300 text-sm">优化后的提示词</label>
+            </div>
+            <div className="relative">
+              <textarea
+                value={optimizedPrompt}
+                readOnly
+                placeholder="优化后的 Midjourney 提示词将显示在这里"
+                className="w-full h-64 md:h-80 lg:h-96 p-4 pr-12 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none resize-none"
+              />
               {optimizedPrompt && (
                 <button
                   onClick={handleCopy}
-                  className="text-xs text-blue-400 hover:text-blue-300 underline"
+                  className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white transition-colors duration-200 rounded-md hover:bg-slate-700/50"
+                  title={copied ? '已复制！' : '复制到剪贴板'}
                 >
-                  复制
+                  {copied ? (
+                    <div className="flex items-center gap-1 text-green-400">
+                      <Check className="w-4 h-4" />
+                      <span className="text-xs">已复制</span>
+                    </div>
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
                 </button>
               )}
             </div>
-            <textarea
-              value={optimizedPrompt}
-              readOnly
-              placeholder="优化后的 Midjourney 提示词将显示在这里"
-              className="w-full h-64 md:h-80 lg:h-96 p-4 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none resize-none"
-            />
           </div>
         </div>
 
