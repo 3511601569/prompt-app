@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AI 提示词优化器',
-  description: '将简单描述优化为 Midjourney 提示词',
+  title: '冰方AI提示词 | 释放你的创意灵感',
+  description: '专为创作者打造的 AI 提示词生成工具，支持多种风格，一键复制，激发无限灵感。',
 }
 
 export default function RootLayout({
