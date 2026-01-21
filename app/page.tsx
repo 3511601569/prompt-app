@@ -10,7 +10,9 @@ import {
   Dices,
   Paintbrush,
   FlaskConical,
+  Trash2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 // 预设风格标签
 const MAGIC_TAGS = ['赛博朋克', '宫崎骏风格', '8k分辨率', '超写实', '极简主义', '皮克斯风格']
@@ -114,6 +116,15 @@ export default function Home() {
     setShowHistory(false)
   }
 
+  // 清空输入和参数
+  const handleClear = () => {
+    setInputText('')
+    setOptimizedPrompt('')
+    setNegativePrompt('')
+    setAspectRatio('16:9')
+    setError('')
+  }
+
   const handleOptimize = async () => {
     if (!inputText.trim()) {
       setError('请输入您的需求')
@@ -125,11 +136,38 @@ export default function Home() {
     setOptimizedPrompt('')
 
     try {
-      const basePrompt = inputText.trim()
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: inputText,
+          model,
+          aspectRatio: model === 'mj' ? aspectRatio : undefined,
+          negativePrompt: model === 'sd' ? negativePrompt : undefined,
+        }),
+      })
+
+      const data = (await response.json()) as
+        | { error?: string }
+        | { model: 'mj'; prompt: string }
+        | { model: 'sd'; positivePrompt: string; negativePrompt: string }
+
+      if (!response.ok) {
+        throw new Error(('error' in data && data.error) || '生成失败，请稍后重试')
+      }
+
       const finalPrompt =
-        model === 'mj'
-          ? `${basePrompt} --ar ${aspectRatio} --v 6.0`
-          : `Positive: ${basePrompt}\nNegative: ${negativePrompt.trim()}`
+        'model' in data && data.model === 'sd'
+          ? `Positive: ${data.positivePrompt}\nNegative: ${data.negativePrompt}`
+          : 'prompt' in data
+            ? data.prompt
+            : ''
+
+      if (!finalPrompt) {
+        throw new Error('未能生成结果，请稍后重试')
+      }
 
       setOptimizedPrompt(finalPrompt)
       // 保存到历史记录
@@ -144,12 +182,14 @@ export default function Home() {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(optimizedPrompt)
+      toast.success('已复制到剪贴板！')
       setCopied(true)
       setTimeout(() => {
         setCopied(false)
       }, 2000)
     } catch (err) {
       console.error('复制失败:', err)
+      toast.error('复制失败，请重试')
     }
   }
 
@@ -200,12 +240,23 @@ export default function Home() {
               </div>
               <label className="block text-slate-300 text-sm">原始需求</label>
             </div>
-            <textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="例如：画一只猫"
-              className="w-full h-64 md:h-80 lg:h-96 p-4 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            />
+            <div className="relative">
+              <textarea
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="例如：画一只猫"
+                className="w-full h-64 md:h-80 lg:h-96 p-4 pr-10 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              />
+              {inputText && (
+                <button
+                  onClick={handleClear}
+                  className="absolute bottom-4 right-4 p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700/50 rounded-md transition-all duration-200"
+                  title="清空"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             {/* 模型专属区域 */}
             {model === 'mj' && (
               <div className="mt-3">
@@ -301,21 +352,24 @@ export default function Home() {
                     ? '优化后的 Midjourney 提示词将显示在这里'
                     : '格式化后的 Stable Diffusion 提示词将显示在这里'
                 }
-                className="w-full h-64 md:h-80 lg:h-96 p-4 pr-12 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none resize-none"
+                className="w-full h-64 md:h-80 lg:h-96 p-4 pr-14 rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none resize-none font-mono text-sm"
               />
               {optimizedPrompt && (
                 <button
                   onClick={handleCopy}
-                  className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white transition-colors duration-200 rounded-md hover:bg-slate-700/50"
-                  title={copied ? '已复制！' : '复制到剪贴板'}
+                  className="absolute top-4 right-4 p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-1.5 group"
+                  title="复制到剪贴板"
                 >
                   {copied ? (
-                    <div className="flex items-center gap-1 text-green-400">
+                    <>
                       <Check className="w-4 h-4" />
-                      <span className="text-xs">已复制</span>
-                    </div>
+                      <span className="text-xs font-medium">已复制</span>
+                    </>
                   ) : (
-                    <Copy className="w-4 h-4" />
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span className="text-xs font-medium">复制</span>
+                    </>
                   )}
                 </button>
               )}
