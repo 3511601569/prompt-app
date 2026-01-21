@@ -1,7 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, Copy, Check, Tag, History, Dices } from 'lucide-react'
+import {
+  Loader2,
+  Copy,
+  Check,
+  Tag,
+  History,
+  Dices,
+  Paintbrush,
+  FlaskConical,
+} from 'lucide-react'
 
 // 预设风格标签
 const MAGIC_TAGS = ['赛博朋克', '宫崎骏风格', '8k分辨率', '超写实', '极简主义', '皮克斯风格']
@@ -29,6 +38,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [model, setModel] = useState<'mj' | 'sd'>('mj')
+  const [aspectRatio, setAspectRatio] = useState('16:9')
+  const [negativePrompt, setNegativePrompt] = useState('')
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [showHistory, setShowHistory] = useState(false)
 
@@ -113,23 +125,15 @@ export default function Home() {
     setOptimizedPrompt('')
 
     try {
-      const response = await fetch('/api/optimize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: inputText }),
-      })
+      const basePrompt = inputText.trim()
+      const finalPrompt =
+        model === 'mj'
+          ? `${basePrompt} --ar ${aspectRatio} --v 6.0`
+          : `Positive: ${basePrompt}\nNegative: ${negativePrompt.trim()}`
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || '优化失败，请稍后重试')
-      }
-
-      setOptimizedPrompt(data.optimizedPrompt)
+      setOptimizedPrompt(finalPrompt)
       // 保存到历史记录
-      saveToHistory(inputText, data.optimizedPrompt)
+      saveToHistory(inputText, finalPrompt)
     } catch (err) {
       setError(err instanceof Error ? err.message : '发生未知错误')
     } finally {
@@ -159,16 +163,42 @@ export default function Home() {
         <div className="flex flex-col lg:flex-row gap-6 md:gap-8 items-stretch">
           {/* 左侧：输入框 */}
           <div className="flex-1">
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex flex-col gap-3 mb-2">
+              <div className="flex items-center justify-between">
+                <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700 rounded-lg">
+                  <button
+                    onClick={() => setModel('mj')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all ${
+                      model === 'mj'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                    }`}
+                  >
+                    <Paintbrush className="w-4 h-4" />
+                    Midjourney 🎨
+                  </button>
+                  <button
+                    onClick={() => setModel('sd')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all ${
+                      model === 'sd'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                    }`}
+                  >
+                    <FlaskConical className="w-4 h-4" />
+                    Stable Diffusion 🧪
+                  </button>
+                </div>
+                <button
+                  onClick={handleRandomPrompt}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-slate-600 rounded-lg transition-all duration-200"
+                  title="随机灵感"
+                >
+                  <Dices className="w-3.5 h-3.5" />
+                  <span>随机灵感</span>
+                </button>
+              </div>
               <label className="block text-slate-300 text-sm">原始需求</label>
-              <button
-                onClick={handleRandomPrompt}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-slate-600 rounded-lg transition-all duration-200"
-                title="随机灵感"
-              >
-                <Dices className="w-3.5 h-3.5" />
-                <span>随机灵感</span>
-              </button>
             </div>
             <textarea
               value={inputText}
@@ -176,6 +206,42 @@ export default function Home() {
               placeholder="例如：画一只猫"
               className="w-full h-64 md:h-80 lg:h-96 p-4 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
+            {/* 模型专属区域 */}
+            {model === 'mj' && (
+              <div className="mt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-slate-400">画面比例 (MJ)</span>
+                </div>
+                <div className="flex gap-2">
+                  {['1:1', '16:9', '9:16', '4:3'].map((ratio) => (
+                    <button
+                      key={ratio}
+                      onClick={() => setAspectRatio(ratio)}
+                      className={`px-3 py-1.5 text-sm rounded-md border transition-all ${
+                        aspectRatio === ratio
+                          ? 'bg-blue-600 text-white border-blue-500 shadow-md'
+                          : 'text-slate-300 bg-slate-800/50 border-slate-700 hover:border-slate-600 hover:bg-slate-700/50'
+                      }`}
+                    >
+                      {ratio}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {model === 'sd' && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-400">负面提示词 (Negative Prompt)</span>
+                </div>
+                <textarea
+                  value={negativePrompt}
+                  onChange={(e) => setNegativePrompt(e.target.value)}
+                  placeholder="不想看到什么？例如：ugly, blurry..."
+                  className="w-full h-28 p-3 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              </div>
+            )}
             {/* 预设风格标签 */}
             <div className="mt-3">
               <div className="flex items-center gap-2 mb-2">
@@ -230,7 +296,11 @@ export default function Home() {
               <textarea
                 value={optimizedPrompt}
                 readOnly
-                placeholder="优化后的 Midjourney 提示词将显示在这里"
+                placeholder={
+                  model === 'mj'
+                    ? '优化后的 Midjourney 提示词将显示在这里'
+                    : '格式化后的 Stable Diffusion 提示词将显示在这里'
+                }
                 className="w-full h-64 md:h-80 lg:h-96 p-4 pr-12 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none resize-none"
               />
               {optimizedPrompt && (
