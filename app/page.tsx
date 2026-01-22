@@ -13,6 +13,7 @@ import {
   FlaskConical,
   Trash2,
   Play,
+  ImageUp,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { showcaseData } from './data/showcase'
@@ -48,6 +49,7 @@ export default function Home() {
   const [negativePrompt, setNegativePrompt] = useState('')
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [showHistory, setShowHistory] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
   // 加载历史记录
   useEffect(() => {
@@ -136,6 +138,78 @@ export default function Home() {
     setNegativePrompt('')
     setAspectRatio('16:9')
     setError('')
+  }
+
+  // 将图片转换为 Base64
+  const convertImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        resolve(result)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // 处理图片上传和反推
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // 检查文件大小（4MB = 4 * 1024 * 1024 bytes）
+    const maxSize = 4 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast.error('图片太大了，请压缩后上传（最大 4MB）')
+      // 清空 input，允许重新选择同一文件
+      event.target.value = ''
+      return
+    }
+
+    setIsUploading(true)
+    toast.loading('正在分析图片，AI 思考中...', { id: 'image-upload' })
+
+    try {
+      // 转换为 Base64
+      const base64Image = await convertImageToBase64(file)
+
+      // 调用反推 API
+      const response = await fetch('/api/describe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: base64Image }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '反推失败，请稍后重试')
+      }
+
+      if (!data.prompt || typeof data.prompt !== 'string') {
+        throw new Error('未能获取提示词')
+      }
+
+      // 自动填入输入框
+      setInputText(data.prompt)
+      // 切换到 MJ 模型（反推通常用于 MJ）
+      setModel('mj')
+      // 清空错误
+      setError('')
+
+      toast.success('反推成功！已填入输入框', { id: 'image-upload' })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '发生未知错误'
+      toast.error(errorMessage, { id: 'image-upload' })
+      setError(errorMessage)
+    } finally {
+      setIsUploading(false)
+      // 清空 input，允许重新选择同一文件
+      event.target.value = ''
+    }
   }
 
   const handleOptimize = async () => {
@@ -242,14 +316,35 @@ export default function Home() {
                     Stable Diffusion 🧪
                   </button>
                 </div>
-                <button
-                  onClick={handleRandomPrompt}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-slate-600 rounded-lg transition-all duration-200"
-                  title="随机灵感"
-                >
-                  <Dices className="w-3.5 h-3.5" />
-                  <span>随机灵感</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <label
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-slate-600 rounded-lg transition-all duration-200 cursor-pointer ${
+                      isUploading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <ImageUp className="w-3.5 h-3.5" />
+                    )}
+                    <span>{isUploading ? '分析中...' : '上传参考图'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    onClick={handleRandomPrompt}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-slate-600 rounded-lg transition-all duration-200"
+                    title="随机灵感"
+                  >
+                    <Dices className="w-3.5 h-3.5" />
+                    <span>随机灵感</span>
+                  </button>
+                </div>
               </div>
               <label className="block text-slate-300 text-sm">原始需求</label>
             </div>
