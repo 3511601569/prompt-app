@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 初始化 Gemini 模型
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' })
 
     // 处理图片数据：去掉 base64 头部
     let base64Data = image
