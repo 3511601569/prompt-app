@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { showcaseData } from './data/showcase'
+import imageCompression from 'browser-image-compression'
 
 // 预设风格标签
 const MAGIC_TAGS = ['赛博朋克', '宫崎骏风格', '8k分辨率', '超写实', '极简主义', '皮克斯风格']
@@ -634,8 +635,8 @@ function Footer() {
           rel="noopener noreferrer"
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
         >
-          <span>🥛</span>
-          <span>帮我买瓶旺仔🥛</span>
+          <span></span>
+          <span>打赏作者</span>
         </a>
       </div>
     </footer>
