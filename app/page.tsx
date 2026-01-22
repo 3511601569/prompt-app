@@ -124,12 +124,11 @@ export default function Home() {
 
   // 处理画廊卡片点击
   const handleGalleryClick = (prompt: string) => {
-    setInputText(prompt)
-    setOptimizedPrompt('')
+    setOptimizedPrompt(prompt)
     setError('')
     // 滚动到顶部
     window.scrollTo({ top: 0, behavior: 'smooth' })
-    toast.success('已加载提示词到输入框')
+    toast.success('已加载提示词到结果框')
   }
 
   // 清空输入和参数
@@ -194,14 +193,14 @@ export default function Home() {
         throw new Error('未能获取提示词')
       }
 
-      // 自动填入输入框
-      setInputText(data.prompt)
+      // 自动填入输出框
+      setOptimizedPrompt(data.prompt)
       // 切换到 MJ 模型（反推通常用于 MJ）
       setModel('mj')
       // 清空错误
       setError('')
 
-      toast.success('反推成功！已填入输入框', { id: 'image-upload' })
+      toast.success('反推成功！已填入结果框', { id: 'image-upload' })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '发生未知错误'
       toast.error(errorMessage, { id: 'image-upload' })
@@ -354,7 +353,7 @@ export default function Home() {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="例如：画一只猫"
-                className="w-full h-64 md:h-80 lg:h-96 p-4 pr-10 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full h-[500px] p-4 pr-10 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               />
               {inputText && (
                 <button
@@ -461,7 +460,7 @@ export default function Home() {
                     ? '优化后的 Midjourney 提示词将显示在这里'
                     : '格式化后的 Stable Diffusion 提示词将显示在这里'
                 }
-                className="w-full h-64 md:h-80 lg:h-96 p-4 pr-14 rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none resize-none font-mono text-sm"
+                className="w-full h-[500px] p-4 pr-14 rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none resize-none font-mono text-sm"
               />
               {optimizedPrompt && (
                 <button
