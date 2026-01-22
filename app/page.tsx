@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import {
   Loader2,
   Copy,
@@ -11,8 +12,10 @@ import {
   Paintbrush,
   FlaskConical,
   Trash2,
+  Play,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { showcaseData } from './data/showcase'
 
 // 预设风格标签
 const MAGIC_TAGS = ['赛博朋克', '宫崎骏风格', '8k分辨率', '超写实', '极简主义', '皮克斯风格']
@@ -114,6 +117,16 @@ export default function Home() {
     setInputText(item.input)
     setOptimizedPrompt(item.output)
     setShowHistory(false)
+  }
+
+  // 处理画廊卡片点击
+  const handleGalleryClick = (prompt: string) => {
+    setInputText(prompt)
+    setOptimizedPrompt('')
+    setError('')
+    // 滚动到顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    toast.success('已加载提示词到输入框')
   }
 
   // 清空输入和参数
@@ -424,7 +437,112 @@ export default function Home() {
             {error}
           </div>
         )}
+
+        {/* 灵感画廊 */}
+        <section className="mt-20">
+          <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-2">
+            ✨ 探索灵感
+          </h2>
+          <p className="text-slate-400 text-center mb-8 text-sm md:text-base">
+            Explore Ideas
+          </p>
+          <PromptGallery onCardClick={handleGalleryClick} />
+        </section>
+
+        {/* 页脚 */}
+        <Footer />
       </div>
     </main>
+  )
+}
+
+// 灵感画廊组件
+function PromptGallery({ onCardClick }: { onCardClick: (prompt: string) => void }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      {showcaseData.map((item) => (
+        <div
+          key={item.id}
+          className="group relative bg-white/5 backdrop-blur-sm border border-slate-700/50 rounded-xl overflow-hidden hover:border-slate-600 hover:bg-white/10 transition-all duration-300 cursor-pointer"
+          onClick={() => onCardClick(item.prompt)}
+        >
+          {/* 上半部分：有 image 时显示图片，否则渐变色背景兜底 */}
+          <div className="h-32 relative overflow-hidden">
+            {item.image ? (
+              <Image
+                src={item.image}
+                alt={item.title}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+            ) : (
+              <div className={`absolute inset-0 bg-gradient-to-br ${item.color}`}>
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/5 transition-colors" />
+              </div>
+            )}
+          </div>
+
+          {/* 内容区域 */}
+          <div className="p-4">
+            <h3 className="text-white font-semibold mb-3 text-lg">{item.title}</h3>
+
+            {/* 标签 */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {item.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2.5 py-1 text-xs bg-slate-800/50 text-slate-300 rounded-full border border-slate-700"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            {/* 试一试按钮 */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onCardClick(item.prompt)
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
+            >
+              <Play className="w-4 h-4" />
+              <span>试一试</span>
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// 页脚组件
+function Footer() {
+  return (
+    <footer className="mt-20 pt-8 pb-8 border-t border-slate-800">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="text-slate-400 text-sm">
+          Created with ❤️ by{' '}
+          <a
+            href="https://github.com/3511601569/prompt-app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 transition-colors underline"
+          >
+            溏心蛋
+          </a>
+        </div>
+        <a
+          href="/images/reward.jpg"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+        >
+          <span>🥛</span>
+          <span>帮我买瓶旺仔🥛</span>
+        </a>
+      </div>
+    </footer>
   )
 }
